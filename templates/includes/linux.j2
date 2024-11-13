@@ -1,0 +1,9 @@
+# ====================
+# Linux Specific Settings
+# ====================
+alias ls='ls -latrh --color=auto'
+
+# Linux specific functions
+port() {
+    ss -tuln | grep $1
+} 

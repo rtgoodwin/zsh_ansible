@@ -1,0 +1,21 @@
+# ====================
+# Search Functions
+# ====================
+fif() {
+  if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
+  if command -v rg >/dev/null && command -v fzf >/dev/null; then
+    rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
+  else
+    echo "Required commands (rg, fzf) not found"
+  fi
+}
+
+fif2() {
+    if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
+    if command -v rga >/dev/null && command -v fzf >/dev/null; then
+      local file
+      file="$(rga --max-count=1 --ignore-case --files-with-matches --no-messages "$*" | fzf-tmux +m --preview="rga --ignore-case --pretty --context 10 '"$*"' {}")" && echo "opening $file" && open "$file" || return 1;
+    else
+      echo "Required commands (rga, fzf) not found"
+    fi
+} 

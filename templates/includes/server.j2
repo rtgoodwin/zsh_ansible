@@ -1,0 +1,24 @@
+# ====================
+# Server Specific Settings
+# ====================
+# System paths
+export PATH="/usr/local/sbin:$PATH"
+
+# Server monitoring aliases
+alias dfs='df -h | grep -v tmpfs'
+alias meminfo='free -h'
+alias ports='netstat -tulanp'
+alias connections='netstat -nat | grep ESTABLISHED'
+alias listening='netstat -nlpt'
+alias psaux='ps auxf | less'
+alias top='htop'
+
+# Log viewing shortcuts
+alias syslogs='tail -f /var/log/syslog'
+alias authlogs='tail -f /var/log/auth.log'
+alias errorlogs='tail -f /var/log/error.log'
+
+# Security related
+alias listusers='cut -d: -f1 /etc/passwd | sort'
+alias listgroups='cut -d: -f1 /etc/group | sort'
+alias checksecurity='lynis audit system' 

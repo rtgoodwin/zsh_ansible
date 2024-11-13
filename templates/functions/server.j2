@@ -1,0 +1,79 @@
+# ====================
+# Server Functions
+# ====================
+# Monitor system load
+sysload() {
+    watch -n 1 "uptime && echo '' && free -h && echo '' && df -h"
+}
+
+# Check service status
+service_status() {
+    if [ -z "$1" ]; then
+        echo "Usage: service_status service_name"
+        return 1
+    fi
+    systemctl status "$1"
+}
+
+# Monitor log files
+logwatch() {
+    if [ -z "$1" ]; then
+        echo "Usage: logwatch /path/to/logfile [pattern]"
+        return 1
+    fi
+    if [ -z "$2" ]; then
+        tail -f "$1"
+    else
+        tail -f "$1" | grep --color=auto "$2"
+    fi
+}
+
+# Process monitoring
+findproc() {
+    if [ -z "$1" ]; then
+        echo "Usage: findproc process_name"
+        return 1
+    fi
+    ps aux | grep -v grep | grep -i "$1"
+}
+
+# Check disk space usage by directory
+diskusage() {
+    local dir="${1:-.}"
+    du -h --max-depth=1 "$dir" | sort -hr
+}
+
+# Monitor system resources
+sysmon() {
+    local pid="${1}"
+    if [ -z "$pid" ]; then
+        echo "Usage: sysmon process_id"
+        return 1
+    fi
+    while true; do
+        clear
+        ps -p "$pid" -o %cpu,%mem,cmd
+        sleep 1
+    done
+}
+
+# Check open ports
+checkport() {
+    if [ -z "$1" ]; then
+        echo "Usage: checkport port_number"
+        return 1
+    fi
+    netstat -tulpn | grep ":$1"
+}
+
+# Quick security audit
+securitycheck() {
+    echo "=== User List ==="
+    listusers
+    echo -e "\n=== SUID Files ==="
+    find / -perm -4000 2>/dev/null
+    echo -e "\n=== Listening Ports ==="
+    netstat -tulpn
+    echo -e "\n=== Last Logins ==="
+    last | head -n 10
+} 

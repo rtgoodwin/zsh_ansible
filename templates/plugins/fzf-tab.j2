@@ -1,0 +1,11 @@
+# ====================
+# FZF Tab Plugin
+# ====================
+source "${USER_HOME}/.zsh-plugins/fzf-tab/fzf-tab.plugin.zsh"
+
+# Configure fzf-tab
+zstyle ':fzf-tab:*' fzf-command fzf
+zstyle ':fzf-tab:*' fzf-flags '--height=50%'
+zstyle ':fzf-tab:*' fzf-bindings 'tab:accept'
+zstyle ':fzf-tab:*' switch-group ',' '.'
+zstyle ':fzf-tab:*' prefix '' 

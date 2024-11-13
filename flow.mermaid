@@ -1,0 +1,52 @@
+graph TD
+    A[ansible-playbook -i inventory.ini zsh-setup.yml --limit target] --> B{Inventory Group Check}
+    
+    B -->|macos group| C[Load macOS Config]
+    B -->|containers group| D[Load Container Config]
+    B -->|servers group| S[Load Server Config]
+    
+    C --> E[Load group_vars/macos.yml]
+    D --> F[Load group_vars/containers.yml]
+    S --> G1[Load group_vars/servers.yml]
+    
+    E & F & G1 --> G[Gather Facts]
+    G --> H[Set become behavior]
+    H --> I[Set home directory]
+    
+    I --> J{OS-specific Tasks}
+    
+    J -->|Darwin| K[macOS Flow]
+    J -->|Linux| L[Linux Flow]
+    
+    K --> K1[Homebrew Install<br/>zsh, git, curl]
+    K --> K2[Homebrew Install<br/>mcfly, starship]
+    K --> K3[Install FiraCode<br/>via homebrew-cask]
+    
+    L --> L1[APT Install<br/>zsh, git, curl, etc]
+    L --> L2[Install mcfly, starship<br/>via curl + install scripts]
+    L --> L3[Install FiraCode<br/>via manual download]
+    
+    K1 & K2 & K3 & L1 & L2 & L3 --> M[Common Tasks]
+    
+    M --> M1[Create Directories]
+    M1 --> M2[Clone ZSH Plugins]
+    M2 --> M3[Configure Starship]
+    M3 --> M4[Generate zshrc<br/>from templates]
+    M4 --> M5[Set ZSH as<br/>default shell]
+    
+    subgraph "Template Processing"
+        M4 --> T1[Load base.j2]
+        M4 --> T2{OS Check}
+        T2 -->|Darwin| T3[Load macos.j2]
+        T2 -->|Server| T4[Load server.j2<br/>Load server functions]
+        T2 -->|Other Linux| T5[Load linux.j2]
+        M4 --> T6[Load features<br/>from group_vars]
+        M4 --> T7[Load plugins<br/>from group_vars]
+    end
+
+    subgraph "Server Features"
+        T4 --> SF1[System Monitoring<br/>Functions]
+        T4 --> SF2[Log Management<br/>Tools]
+        T4 --> SF3[Security Audit<br/>Functions]
+        T4 --> SF4[Resource Usage<br/>Aliases]
+    end

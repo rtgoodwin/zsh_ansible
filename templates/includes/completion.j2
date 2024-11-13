@@ -1,0 +1,23 @@
+# ====================
+# ZSH Completion Setup
+# ====================
+autoload -Uz compinit
+compinit
+
+# Basic completion settings
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' # Case insensitive completion
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"   # Colored completion (GNU)
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*' group-name ''                      # Group matches by type
+zstyle ':completion:*:descriptions' format '%F{green}-- %d --%f'
+zstyle ':completion:*:messages' format '%F{yellow}-- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}-- no matches found --%f'
+
+# Cache completion
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "$HOME/.zcompcache"
+
+# Kill process completion
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
+zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd' 

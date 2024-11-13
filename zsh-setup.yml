@@ -1,0 +1,250 @@
+---
+- name: Setup ZSH Configuration
+  hosts: all
+  gather_facts: yes
+  vars:
+    actual_user: "{{ ansible_user }}"
+    actual_group: "{{ ansible_group }}"
+    template_dir: "templates"
+  
+  pre_tasks:
+    - name: Set become based on OS
+      set_fact:
+        should_become: "{{ ansible_os_family != 'Darwin' }}"
+
+  tasks:
+    - name: Debug OS detection
+      debug:
+        msg:
+          - "Detected OS Family: {{ ansible_os_family }}"
+          - "User: {{ actual_user }}"
+          - "Group: {{ actual_group }}"
+      become: "{{ should_become }}"
+
+    - name: Get Linux user info and set home directory
+      block:
+        - name: Get user info with getent
+          getent:
+            database: passwd
+            key: "{{ ansible_user }}"
+          register: user_info
+
+        - name: Set Linux home directory
+          set_fact:
+            user_home: "{{ user_info.ansible_facts.getent_passwd[ansible_user][4] }}"
+      when: ansible_os_family != "Darwin"
+
+    - name: Set macOS home directory
+      set_fact:
+        user_home: "/Users/{{ ansible_user }}"
+      when: ansible_os_family == "Darwin"
+
+    - name: Set plugin directories
+      set_fact:
+        zsh_plugins_dir: "{{ user_home }}/.zsh-plugins"
+
+    - name: Debug variables
+      debug:
+        msg:
+          - "User home: {{ user_home }}"
+          - "Plugins dir: {{ zsh_plugins_dir }}"
+          - "Ansible user: {{ ansible_user }}"
+          - "OS Family: {{ ansible_os_family }}"
+
+    - name: Ensure system is updated (Debian)
+      apt:
+        update_cache: yes
+        upgrade: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install basic requirements (Debian)
+      apt:
+        name:
+          - sudo
+          - python3
+          - locales
+          - zsh
+          - git
+          - curl
+          - fontconfig
+          - unzip
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install basic requirements (macOS)
+      homebrew:
+        name:
+          - zsh
+          - git
+          - curl
+        state: present
+      become: no
+      when: ansible_os_family == "Darwin"
+
+    - name: Generate locales (Debian)
+      shell: locale-gen en_US.UTF-8
+      when: ansible_os_family == "Debian"
+
+    - name: Create ZSH configuration directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ actual_user }}"
+        group: "{{ actual_group }}"
+      loop:
+        - "{{ zsh_plugins_dir }}"
+        - "{{ user_home }}/.zsh"
+
+    - name: Clone ZSH plugins
+      git:
+        repo: "{{ item.repo }}"
+        dest: "{{ item.dest }}"
+        depth: 1
+      loop:
+        - { repo: 'https://github.com/agkozak/zsh-z.git', dest: '{{ zsh_plugins_dir }}/zsh-z' }
+        - { repo: 'https://github.com/zsh-users/zsh-autosuggestions.git', dest: '{{ zsh_plugins_dir }}/zsh-autosuggestions' }
+        - { repo: 'https://github.com/Aloxaf/fzf-tab.git', dest: '{{ zsh_plugins_dir }}/fzf-tab' }
+      become: "{{ should_become }}"
+      become_user: "{{ actual_user }}"
+
+    - name: Create ZSH history file
+      file:
+        path: "{{ user_home }}/.zsh_history"
+        state: touch
+        mode: '0600'
+        owner: "{{ actual_user }}"
+        group: "{{ actual_group }}"
+      become: "{{ should_become }}"
+      become_user: "{{ actual_user }}"
+
+    - name: Install McFly and Starship (macOS)
+      homebrew:
+        name:
+          - mcfly
+          - starship
+        state: present
+      become: no
+      when: ansible_os_family == "Darwin"
+
+    - name: Install Starship (Debian)
+      shell: curl -sS https://starship.rs/install.sh | sh -s -- --yes
+      when: ansible_os_family == "Debian"
+
+    - name: Check if McFly is installed
+      command: which mcfly
+      register: mcfly_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install McFly (Debian)
+      shell: curl -LSfs https://raw.githubusercontent.com/cantino/mcfly/master/ci/install.sh | sh -s -- --git cantino/mcfly --force
+      when: 
+        - ansible_os_family == "Debian"
+        - mcfly_check.rc != 0 or force_mcfly_install | default(false)
+
+    - name: Handle McFly Installation (Debian)
+      block:
+        - name: Check McFly version
+          command: mcfly --version
+          register: mcfly_version
+          ignore_errors: yes
+          changed_when: false
+
+        - name: Install/Update McFly
+          shell: curl -LSfs https://raw.githubusercontent.com/cantino/mcfly/master/ci/install.sh | sh -s -- --git cantino/mcfly --force
+          when: mcfly_version.rc != 0 or force_mcfly_install | default(false)
+      when: ansible_os_family == "Debian"
+
+    - name: Create Starship config directory
+      file:
+        path: "{{ user_home }}/.config"
+        state: directory
+        mode: '0755'
+        owner: "{{ actual_user }}"
+        group: "{{ actual_group }}"
+
+    - name: Copy Starship configuration
+      copy:
+        src: "starship.toml"
+        dest: "{{ user_home }}/.config/starship.toml"
+        mode: '0644'
+        owner: "{{ actual_user }}"
+        group: "{{ actual_group }}"
+
+    - name: Create ZSH configuration file
+      template:
+        src: "{{ template_dir }}/zshrc.j2"
+        dest: "{{ user_home }}/.zshrc"
+        mode: '0644'
+        owner: "{{ actual_user }}"
+        group: "{{ actual_group }}"
+      become: "{{ should_become }}"
+      become_user: "{{ actual_user }}"
+
+    - name: Set ZSH as default shell
+      user:
+        name: "{{ actual_user }}"
+        shell: /bin/zsh
+      become: "{{ should_become }}"
+
+    - name: Check if ZSH is installed
+      command: which zsh
+      register: zsh_exists
+      ignore_errors: yes
+      changed_when: false
+      become: no
+
+    - name: Fail if ZSH is not installed
+      fail:
+        msg: "ZSH is not installed. Please install it first."
+      when: zsh_exists.rc != 0
+
+    - name: Install FiraCode Nerd Font (macOS)
+      homebrew_cask:
+        name: font-fira-code-nerd-font
+        state: present
+      become: no
+      when: ansible_os_family == "Darwin"
+
+    - name: Create fonts directory (Linux)
+      file:
+        path: "{{ user_home }}/.local/share/fonts"
+        state: directory
+        mode: '0755'
+        owner: "{{ actual_user }}"
+        group: "{{ actual_group }}"
+      when: ansible_os_family != "Darwin"
+
+    - name: Download and install FiraCode Nerd Font (Linux)
+      block:
+        - name: Create temporary directory
+          tempfile:
+            state: directory
+          register: temp_dir
+          
+        - name: Download FiraCode Nerd Font
+          get_url:
+            url: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/FiraCode.zip
+            dest: "{{ temp_dir.path }}/FiraCode.zip"
+            mode: '0644'
+
+        - name: Unzip FiraCode font
+          unarchive:
+            src: "{{ temp_dir.path }}/FiraCode.zip"
+            dest: "{{ user_home }}/.local/share/fonts/"
+            remote_src: yes
+            owner: "{{ actual_user }}"
+            group: "{{ actual_group }}"
+
+        - name: Update font cache
+          command: fc-cache -f -v
+          become: yes
+
+        - name: Clean up temporary directory
+          file:
+            path: "{{ temp_dir.path }}"
+            state: absent
+      when: ansible_os_family != "Darwin"
+      become: yes
+      become_user: "{{ actual_user }}"

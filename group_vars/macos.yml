@@ -1,0 +1,11 @@
+---
+zsh_features:
+  - base
+  - completion
+  - aliases
+  - functions
+
+plugins:
+  - zsh-z
+  - zsh-autosuggestions
+  - fzf-tab

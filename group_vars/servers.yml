@@ -1,0 +1,17 @@
+---
+zsh_features:
+  - base
+  - completion
+  - aliases
+  - functions
+
+plugins:
+  - zsh-z
+  - zsh-autosuggestions
+  - fzf-tab
+
+# Server-specific settings
+server_features:
+  - monitoring_aliases
+  - log_functions
+  - security_checks 

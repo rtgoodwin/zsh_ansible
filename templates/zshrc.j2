@@ -1,0 +1,25 @@
+{# Main ZSH configuration file #}
+{% include 'includes/base.j2' %}
+
+{% if ansible_os_family == 'Darwin' %}
+{% include 'includes/macos.j2' %}
+{% elif inventory_hostname in groups['servers'] %}
+{% include 'includes/server.j2' %}
+{% else %}
+{% include 'includes/linux.j2' %}
+{% endif %}
+
+{% include 'includes/aliases.j2' %}
+{% include 'includes/functions.j2' %}
+
+{% if inventory_hostname in groups['servers'] %}
+{% include 'functions/server.j2' %}
+{% endif %}
+
+{% for feature in zsh_features %}
+{% include 'includes/' + feature + '.j2' %}
+{% endfor %}
+
+{% for plugin in plugins %}
+{% include 'plugins/' + plugin + '.j2' %}
+{% endfor %} 

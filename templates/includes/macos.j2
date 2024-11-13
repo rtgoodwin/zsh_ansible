@@ -1,0 +1,10 @@
+# ====================
+# macOS Specific Settings
+# ====================
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+alias ls='ls -latrh -G'
+
+# macOS specific functions
+port() {
+    netstat -anvp tcp | awk 'NR<3 || /LISTEN/' | grep $1
+} 

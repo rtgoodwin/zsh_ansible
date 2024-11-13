@@ -1,0 +1,102 @@
+# Main flow
+ansible: "ansible-playbook command" {
+  style: {
+    stroke-dash: 0
+  }
+  cmd: "-i inventory.ini zsh-setup.yml --limit target"
+}
+
+# Inventory groups
+groups: "Inventory Groups" {
+  macos: "macOS Hosts"
+  containers: "Container Hosts"
+  servers: "Server Hosts"
+}
+
+# Configuration loading
+configs: "Load Configurations" {
+  macos_vars: "group_vars/macos.yml"
+  container_vars: "group_vars/containers.yml"
+  server_vars: "group_vars/servers.yml"
+}
+
+# Common tasks
+common: "Common Tasks" {
+  facts: "Gather Facts"
+  become: "Set become behavior"
+  home: "Set home directory"
+}
+
+# OS specific tasks
+os_tasks: "OS-specific Tasks" {
+  darwin: "macOS Flow" {
+    brew: "Homebrew Install\nzsh, git, curl"
+    tools: "Install mcfly, starship"
+    fonts: "Install FiraCode\nvia homebrew-cask"
+  }
+  linux: "Linux Flow" {
+    apt: "APT Install\nzsh, git, curl"
+    tools: "Install mcfly, starship\nvia curl + scripts"
+    fonts: "Install FiraCode\nmanual download"
+  }
+}
+
+# Template processing
+templates: "Template Processing" {
+  base: "Load base.j2"
+  os_check: "OS Check" {
+    darwin_t: "Load macos.j2"
+    server_t: "Load server.j2"
+    linux_t: "Load linux.j2"
+  }
+  features: "Load features"
+  plugins: "Load plugins"
+}
+
+# Server features
+server_features: "Server Features" {
+  monitoring: "System Monitoring"
+  logs: "Log Management"
+  security: "Security Audit"
+  resources: "Resource Usage"
+}
+
+# Connections
+ansible -> groups
+groups.macos -> configs.macos_vars
+groups.containers -> configs.container_vars
+groups.servers -> configs.server_vars
+
+configs -> common.facts
+common.facts -> common.become
+common.become -> common.home
+
+common.home -> os_tasks: "OS Detection"
+
+os_tasks.darwin -> templates
+os_tasks.linux -> templates
+
+templates.os_check -> server_features: "If server host"
+
+# Styling
+templates.os_check: {
+  style: {
+    stroke: blue
+    stroke-width: 2
+  }
+}
+
+server_features: {
+  style: {
+    stroke: green
+    fill: "#f5f5f5"
+  }
+}
+
+ansible: {
+  style: {
+    fill: "#e6e6e6"
+    stroke: red
+    stroke-width: 2
+  }
+}
